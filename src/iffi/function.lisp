@@ -124,7 +124,11 @@
   (if (null param-config)
       doc
       (with-output-to-string (out)
-        (let ((*print-case* :downcase))
+        (let ((*print-case* :downcase)
+	      (rest-p nil))
+	  (when (eq (car (last param-config)) '&rest)
+	    (setq param-config (butlast param-config))
+	    (setq rest-p t))
           (format out "Adapted result: ")
           (prin1 return-type out)
           (format out "~&Adapted parameters:")
@@ -133,7 +137,9 @@
                    (prin1 type out)
                    (format out " ")
                    (princ name out))
-          (format out "~&~%~A" doc)))))
+          (when rest-p
+	    (format out "~&..."))
+	  (format out "~&~%~A" doc)))))
 
 
 (defmacro defifun (name-and-options return-type &body configuration)
@@ -160,7 +166,7 @@
                   '(:const))
                 (loop for param in param-config
                       if (eq param '&rest)
-                        collect '&rest
+                        collect ''&rest
                       else
                         collect
                         (destructuring-bind (cffi-type
@@ -178,8 +184,7 @@
            (cffi:defcfun (,mangled ,cfun-name ,@(nreverse cffi-opts)) ,return-type
              ,@(when doc
                  (list doc))
-             ,@(loop for (param-name type) in param-config
-                     collect `(,param-name ,type)))
+             ,@param-config)
            (meta-eval
              (setf (intricate-function ',name ,@signed-param-types) ',cfun-name))
            ,@(when pointer-extractor
