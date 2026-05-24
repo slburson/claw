@@ -718,6 +718,7 @@
                              :variadic (%resect:function-proto-variadic-p method-prototype)
                              :static (%resect:type-method-static-p type-method)
                              :const (%resect:type-method-const-p type-method)
+                             :ref-qualifier (%resect:method-ref-qualifier method-decl)
                              :template (if (cffi:null-pointer-p method-decl)
                                            nil
                                            (%resect:declaration-template-p method-decl)))
