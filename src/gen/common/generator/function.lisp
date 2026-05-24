@@ -1,5 +1,6 @@
 (cl:in-package :claw.generator.common)
 
+(alexandria:define-constant this-parameter-entity-name "__claw_this_" :test #'string=)
 
 (defvar *adapt-mode* :c)
 
@@ -210,7 +211,7 @@
                                 (not (claw.spec:foreign-method-static-p entity)))
                            (list* (make-instance
                                    'claw.spec:foreign-parameter
-                                   :name "__claw_this_"
+                                   :name this-parameter-entity-name
                                    :enveloped (make-instance 'claw.spec:foreign-pointer
                                                              :enveloped (claw.spec:foreign-owner entity)))
                                   params)
