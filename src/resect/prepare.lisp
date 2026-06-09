@@ -135,6 +135,7 @@
                              :ignore-definitions ignore-definitions
                              :ignore-sources ignore-sources)
     (prepare-header implicit uber-path prepared-path)
+    ;; (break "~A" prepared-path)
     (values (list prepared-path)
             (loop for macro being the hash-value of (macros-of implicit)
                   collect macro))))
@@ -176,7 +177,8 @@
 
 
 (defun prepare-new-record-template-instantiations (decl)
-  (unless (or (cffi:null-pointer-p (%resect:declaration-template decl))
+  (unless (or (and (cffi:null-pointer-p (%resect:declaration-template decl))
+                   #+(or) (not (%resect:record-has-inherited-constructor-p decl)))
               (%resect:declaration-partially-specialized-p decl)
               (not (publicp decl))
               (not (template-arguments-public-p decl))
@@ -193,10 +195,13 @@
   (resect:docollection (field-decl (%resect:record-fields decl))
     (prepare-type (%resect:declaration-type field-decl)))
 
+  (format t "Record ~A~%" (%resect:declaration-name decl))
   (resect:docollection (method-decl (%resect:record-methods decl))
+    (format t "  Method ~A~%" (%resect:declaration-id method-decl))
     (register-function-if-instantiable method-decl)
     (prepare-type (%resect:method-result-type method-decl))
     (resect:docollection (param-decl (%resect:method-parameters method-decl))
+      (format t "    param ~A~%" (%resect:declaration-id param-decl))
       (prepare-type (%resect:declaration-type param-decl)))))
 
 

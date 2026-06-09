@@ -656,26 +656,86 @@
                 (string+ "operator "
                          (remove-template-argument-string (foreign-entity-name result-type))))))
 
+(defstruct type-method-rec
+  id
+  decl
+  pure-name
+  result-type
+  parameters
+  variadic-p
+  constructor-p
+  constructor-kind
+  source
+  static-p
+  const-p)
+
+;;; Easier to use than `maphash' when the body is large.
+(defmacro do-hash-table ((k v table &optional value) &body body)
+  `(progn
+     (maphash (lambda (,k ,v) . ,body) ,table)
+     ,value))
 
 (defun parse-methods (entity record-decl &key postfix ((:type record-type)))
   (let ((*current-owner* entity)
-        (record-type (or record-type (%resect:declaration-type record-decl))))
+        (pure-record-name (remove-template-argument-string
+                            (foreign-entity-name entity)))
+        (record-type (or record-type (%resect:declaration-type record-decl)))
+        (methods (make-hash-table :test 'equal)))
     (resect:docollection (type-method (%resect:type-methods record-type))
-      (let* ((method-prototype (%resect:type-method-prototype type-method))
-             (method-decl (%resect:type-method-declaration type-method))
+      (let ((id (%resect:type-method-id type-method))
+            (method-decl (%resect:type-method-declaration type-method)))
+        (unless (%resect:method-deleted-p method-decl)
+          (setf (gethash id methods)
+                (make-type-method-rec :id id :decl method-decl
+                                      :pure-name (remove-template-argument-string
+                                                  (%resect:type-method-name type-method))
+                                      :result-type (ensure-const-type-if-needed
+                                                    (%resect:function-proto-result-type method-prototype)
+                                                    (parse-type-by-category
+                                                     (%resect:function-proto-result-type method-prototype)))
+                                      :parameters (parse-instantiated-method-parameters
+                                                   (%resect:function-proto-parameters method-prototype)
+                                                   (unless (cffi:null-pointer-p method-decl)
+                                                     (%resect:method-parameters method-decl)))
+                                      :variadic-p (%resect:function-proto-variadic-p method-prototype)
+                                      :constructor-p (%resect:method-constructor-p method-decl)
+                                      :constructor-kind (%resect:type-method-constructor-kind type-method)
+                                      :source (if (cffi:null-pointer-p method-decl)
+                                                  (%resect:type-method-source type-method)
+                                                (%resect:declaration-source method-decl))
+                                      :static-p (%resect:type-method-static-p type-method)
+                                      :const-p (%resect:type-method-const-p type-method))))))
+    (when (%resect:record-has-inherited-constructor-p record-decl)
+      ;; In this case, the type-methods we get from libclang are wrong.  The inherited
+      ;; constructors are missing, and a default constructor may be present even though
+      ;; the parent class doesn't have one.  We have to get the inherited constructors
+      ;; from `record-decl' and fix them up.
+      ;; Bug filed: https://github.com/llvm/llvm-project/issues/202235
+      (resect:docollection (method-decl (%resect:record-methods record-decl))
+        (when (%resect:method-constructor-p method-decl)
+          ;; &&& May need to strip template arguments
+          (let ((ctor-name (%resect:declaration-name method-decl))
+                (class-name (%resect:declaration-name record-decl)))
+            (unless (string= ctor-name class-name)
+              (let* ((parent-ctor-id (%resect:declaration-id method-decl))
+                     (child-ctor-id (rewrite-inherited-ctor-id id-in-parent ctor-name class-name))
+                     (child-ctor-rec (gethash child-ctor-id methods)))
+                (unless child-ctor-rec
+                  (setf (gethash child-ctor-id methods)
+                        (make-type-method-rec :id child-ctor-id :decl method-decl
+                                              :pure-name class-name :constructor-p t
+                                              :constructor-kind )))))))))
+    (do-hash-table (id type-method-rec methods)
+      (format t "type-method: ~A~%" id)
+      (let* ((method-prototype (type-method-rec-prototype type-method-rec))
+             (method-decl (type-method-rec-decl type-method-rec))
              (mangled-name (ensure-method-mangled-name type-method postfix))
-             (pure-method-name (remove-template-argument-string
-                                (%resect:type-method-name type-method)))
-             (pure-record-name (remove-template-argument-string
-                                (foreign-entity-name entity)))
-             (constructor-p (string= pure-method-name pure-record-name))
-             (result-type (ensure-const-type-if-needed
-                           (%resect:function-proto-result-type method-prototype)
-                           (parse-type-by-category
-                            (%resect:function-proto-result-type method-prototype)))))
+             (pure-method-name (type-method-rec-pure-name type-method-rec))
+             (constructor-p (type-method-rec-constructor-p type-method-rec))
+             (result-type (type-method-rec-result-type type-method-rec)))
         (multiple-value-bind (method newp)
             (register-entity 'foreign-method
-                             :id (%resect:type-method-id type-method)
+                             :id id
                              :kind (cond
                                      (constructor-p
                                       :constructor)
@@ -684,9 +744,7 @@
                                      ((starts-with-subseq "operator" pure-method-name)
                                       :operator)
                                      (t :regular))
-                             :source (if (cffi:null-pointer-p method-decl)
-                                         (%resect:type-method-source type-method)
-                                         (%resect:declaration-source method-decl))
+                             :source (type-method-rec-source type-method-rec)
                              :name (cond
                                      (constructor-p
                                       (string+ pure-method-name
@@ -697,7 +755,7 @@
                                       (string+ "operator "
                                                (foreign-entity-name result-type)))
 
-                                     (t (%resect:type-method-name type-method)))
+                                     (t (type-method-rec-name type-method-rec)))
                              :owner entity
                              :namespace (unless-empty
                                          (if (cffi:null-pointer-p method-decl)
@@ -711,19 +769,30 @@
                                                           :column 0)
                                            (make-declaration-location method-decl))
                              :result-type result-type
-                             :parameters (parse-instantiated-method-parameters
-                                          (%resect:function-proto-parameters method-prototype)
-                                          (unless (cffi:null-pointer-p method-decl)
-                                            (%resect:method-parameters method-decl)))
-                             :variadic (%resect:function-proto-variadic-p method-prototype)
-                             :static (%resect:type-method-static-p type-method)
-                             :const (%resect:type-method-const-p type-method)
+                             :parameters (type-method-rec-parameters type-method-rec)
+                             :variadic (type-method-rec-variadic type-method-rec)
+                             :static (type-method-rec-static-p type-method-rec)
+                             :const (type-method-rec-const-p type-method-rec)
                              :ref-qualifier (%resect:method-ref-qualifier method-decl)
                              :template (if (cffi:null-pointer-p method-decl)
                                            nil
                                            (%resect:declaration-template-p method-decl)))
           (when newp
             (setf (gethash mangled-name *mangled-table*) method)))))))
+
+(defun rewrite-inherited-ctor-id (id from-class-name to-class-name)
+  ;; This will do the wrong thing if `from-class-name' occurs accidentally in `id',
+  ;; as is possible if it's a single letter, or if it's a substring of some containing
+  ;; namespace name.
+  (let ((start-pos 0))
+    (loop
+      (let ((pos (search from-class-name id :start2 start-pos)))
+        (when (null pos)
+          (return))
+        (let ((end (+ pos (length from-class-name))))
+          (setq id (concatenate 'string (subseq id 0 pos) to-class-name (subseq id end)))
+          (setq start-pos end))))
+    id))
 
 
 (defun method-exists-p (decl)
