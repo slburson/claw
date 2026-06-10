@@ -213,12 +213,20 @@
                                adapted-params))
                (params (if (and (typep entity 'claw.spec:foreign-method)
                                 (not (claw.spec:foreign-method-static-p entity)))
-                           (list* (make-instance
-                                   'claw.spec:foreign-parameter
-                                   :name "__claw_this_"
-                                   :enveloped (make-instance 'claw.spec:foreign-pointer
-                                                             :enveloped (claw.spec:foreign-owner entity)))
-                                  params)
+                           (let* ((owner (claw.spec:foreign-owner entity))
+                                  (target-type
+                                    (if (claw.spec:foreign-method-const-p entity)
+                                        (make-instance 'claw.spec:foreign-const-qualifier
+                                                       :enveloped owner)
+                                        owner))
+                                  (this-type
+                                    (make-instance 'claw.spec:foreign-pointer
+                                                   :enveloped target-type)))
+                             (list* (make-instance
+                                      'claw.spec:foreign-parameter
+                                      :name "__claw_this_"
+                                      :enveloped this-type)
+                                    params))
                            params))
                (params (if (and result-type-adapted-from
                                 (not (typep result-type-adapted-from 'claw.spec:foreign-reference)))
