@@ -150,6 +150,12 @@
                             (format nil "~A(~{~A~^, ~})"
                                     (claw.spec:format-full-foreign-entity-name entity)
                                     param-names))
+                           ;; For rvalue-qualified methods, be careful to generate an rvalue;
+                           ;; this is occasionally needed for overload disambiguation.
+                           ((eq (claw.spec:foreign-method-ref-qualifier entity) :rvalue)
+                            (format nil "std::move(*__claw_this_).~A(~{~A~^, ~})"
+                                    name
+                                    param-names))
                            (t
                             (format nil "__claw_this_->~A(~{~A~^, ~})"
                                     name
