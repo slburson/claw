@@ -43,7 +43,7 @@
                           (entity->iffi-type
                            (claw.spec:foreign-enveloped-entity from)))
         for ref-qual = (and (string= (claw.spec:foreign-entity-name param)
-                                     this-parameter-entity-name)
+                                     "__claw_this_")
                             (let ((rq (claw.spec:foreign-method-ref-qualifier
                                        (adapted-function-entity adapted-function))))
                               (and (not (eq rq ':none)) rq)))
