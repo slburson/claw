@@ -214,6 +214,8 @@
                (params (if (and (typep entity 'claw.spec:foreign-method)
                                 (not (claw.spec:foreign-method-static-p entity)))
                            (let* ((owner (claw.spec:foreign-owner entity))
+                                  ;; Constness of `this' occasionally matters for
+                                  ;; overload resolution.
                                   (target-type
                                     (if (claw.spec:foreign-method-const-p entity)
                                         (make-instance 'claw.spec:foreign-const-qualifier
