@@ -27,7 +27,6 @@
            #:adapted-function-result-type
            #:adapted-function-body
            #:adapted-function-entity
-           #:this-parameter-entity-name
 
            #:adapt-type
 
