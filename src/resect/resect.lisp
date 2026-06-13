@@ -777,8 +777,8 @@
                              :template (if (cffi:null-pointer-p method-decl)
                                            nil
                                            (%resect:declaration-template-p method-decl)))
-          (when newp
-            (setf (gethash mangled-name *mangled-table*) method)))))))
+            (when newp
+              (setf (gethash mangled-name *mangled-table*) method))))))))
 
 (defun rewrite-inherited-ctor-id (id from-class-name to-class-name)
   ;; This will do the wrong thing if `from-class-name' occurs accidentally in `id',
