@@ -195,13 +195,10 @@
   (resect:docollection (field-decl (%resect:record-fields decl))
     (prepare-type (%resect:declaration-type field-decl)))
 
-  (format t "Record ~A~%" (%resect:declaration-name decl))
   (resect:docollection (method-decl (%resect:record-methods decl))
-    (format t "  Method ~A~%" (%resect:declaration-id method-decl))
     (register-function-if-instantiable method-decl)
     (prepare-type (%resect:method-result-type method-decl))
     (resect:docollection (param-decl (%resect:method-parameters method-decl))
-      (format t "    param ~A~%" (%resect:declaration-id param-decl))
       (prepare-type (%resect:declaration-type param-decl)))))
 
 
