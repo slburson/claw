@@ -666,9 +666,7 @@
              (mangled-name (ensure-method-mangled-name type-method postfix))
              (pure-method-name (remove-template-argument-string
                                 (%resect:type-method-name type-method)))
-             (pure-record-name (remove-template-argument-string
-                                (foreign-entity-name entity)))
-             (constructor-p (string= pure-method-name pure-record-name))
+             (constructor-p (%resect:method-constructor-p method-decl))
              (result-type (ensure-const-type-if-needed
                            (%resect:function-proto-result-type method-prototype)
                            (parse-type-by-category
