@@ -135,6 +135,7 @@
                              :ignore-definitions ignore-definitions
                              :ignore-sources ignore-sources)
     (prepare-header implicit uber-path prepared-path)
+    ;; (break "~A" prepared-path)
     (values (list prepared-path)
             (loop for macro being the hash-value of (macros-of implicit)
                   collect macro))))
@@ -176,7 +177,8 @@
 
 
 (defun prepare-new-record-template-instantiations (decl)
-  (unless (or (cffi:null-pointer-p (%resect:declaration-template decl))
+  (unless (or (and (cffi:null-pointer-p (%resect:declaration-template decl))
+                   #+(or) (not (%resect:record-has-inherited-constructor-p decl)))
               (%resect:declaration-partially-specialized-p decl)
               (not (publicp decl))
               (not (template-arguments-public-p decl))
