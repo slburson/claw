@@ -84,9 +84,9 @@
            #:foreign-method-ref-qualifier
 
            #:foreign-variable
-           #:foreing-variable-type
+           #:foreign-variable-type
            #:foreign-entity-value
-           #:foreing-variable-external-p
+           #:foreign-variable-external-p
 
            #:foreign-templatable-p
            #:foreign-entity-template-p
@@ -578,10 +578,10 @@
           :reader foreign-entity-value)
    (type :initarg :type
          :initform (error ":type missing")
-         :reader foreing-variable-type)
+         :reader foreign-variable-type)
    (external-p :initarg :external
                :initform nil
-               :reader foreing-variable-external-p)))
+               :reader foreign-variable-external-p)))
 
 
 ;;;
