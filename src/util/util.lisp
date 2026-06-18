@@ -113,8 +113,8 @@
                         (return (values (nreverse result) len))
                    when (char= (aref name idx) #\,)
                      do (unless (= last-end idx)
-                          (push (substring-trim name last-end idx) result)
-                          (setf last-end (1+ idx)))
+                          (push (substring-trim name last-end idx) result))
+                        (setf last-end (1+ idx))
                    when (and (char= (aref name idx) #\>)
                              (not (%weird-char-p (1+ idx))))
                      do (unless (= last-end idx)
@@ -122,8 +122,8 @@
                         (return (values (nreverse result) (1+ idx)))
                    when (and (char= (aref name idx) #\<)
                              (not (%weird-char-p (1+ idx))))
-                     do (when (> (- idx pos) 1)
-                          (push (substring-trim name pos idx) result))
+                     do (unless (= last-end idx)
+                          (push (substring-trim name last-end idx) result))
                         (multiple-value-bind (groups end)
                             (%extract (1+ idx))
                           (push groups result)
@@ -133,14 +133,22 @@
 
 
 (defun join-groups-into-template-name (groups)
-  (format nil "~{~A~}"
-          (loop for (group next) on groups
-                collect (cond
-                          ((listp group)
-                           (format nil "<~A>" (join-groups-into-template-name group)))
-                          ((listp next) group)
-                          (t (format nil "~A," group))))))
-
+  (labels ((join-type (groups str)
+             (if (null groups)
+                 str
+               (let ((str (format nil "~@[~A,~]~A" str (car groups))))
+                 (if (listp (cadr groups))
+                     (join-args (cdr groups) str)
+                   (join-type (cdr groups) str)))))
+           (join-args (groups str)
+             (cond ((null groups)
+                    str)
+                   ((listp (car groups))
+                    (join-args (cdr groups)
+                               (format nil "~@[~A~]<~A>" str (join-type (car groups) nil))))
+                   (t
+                    (join-type groups str)))))
+    (join-args groups nil)))
 
 (defun remove-template-argument-string (name)
   (let* ((groups (split-template-name-into-groups name))
