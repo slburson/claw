@@ -125,8 +125,18 @@
                                            intrinsics
                                            &key)
   (declare (ignore header-path includes frameworks language standard target intrinsics))
-  (loop for hook in (reverse *post-parse-hooks*)
-        do (funcall hook)))
+  (let ((n-decls 0))
+    (loop while *post-parse-hooks*
+      do
+      (let ((hooks (reverse *post-parse-hooks*)))
+        (setq *post-parse-hooks* nil)
+        (loop for hook in hooks
+          do (funcall hook)))
+      ;; Prevent bugs from causing infinite loops: if a pass adds no new declarations, exit.
+      (let ((new-n-decls (hash-table-count *declaration-table*)))
+        (unless (> new-n-decls n-decls)
+          (return))
+        (setq n-decls new-n-decls)))))
 
 
 (defmethod inspect-declaration ((this describing-inspector) kind declaration)
@@ -660,18 +670,60 @@
 (defun parse-methods (entity record-decl &key postfix ((:type record-type)))
   (let ((*current-owner* entity)
         (record-type (or record-type (%resect:declaration-type record-decl))))
+    (when (%resect:record-has-inherited-constructor-p record-decl)
+      ;; Libclang doesn't copy down inherited constructors unless they're actually called.
+      ;; And unlike in the template case, compiling an instantiation isn't sufficient to
+      ;; get them to show up.  Libresect has been modified to add them to the decl, but
+      ;; they're not on the type; we need to find the parent class methods and rewrite
+      ;; them for the subclass.
+      (resect:docollection (method-decl (%resect:record-methods record-decl))
+        (when (%resect:method-constructor-p method-decl)
+          (let ((ctor-name (%resect:declaration-name method-decl))
+                (class-name (%resect:declaration-name record-decl)))
+            (unless (string= ctor-name class-name)
+              (let* ((parent-ctor-id (%resect:declaration-id method-decl))
+                     (parent-ctor (find-entity parent-ctor-id)))
+                (if (null parent-ctor)
+                    ;; This is called out of *post-parse-hooks*, which may not be in the
+                    ;; correct order.  If not, we just postpone it again.
+                    (progn
+                      (on-post-parse
+                        (parse-methods entity record-decl :postfix postfix :type record-type))
+                      (return-from parse-methods))
+                  (unless (member (claw.spec:foreign-method-constructor-kind parent-ctor)
+                                  '(:copy :move))
+                    (let* ((child-ctor-id (rewrite-inherited-ctor-id parent-ctor-id ctor-name class-name))
+                           (ctor-namespace (%resect:declaration-namespace method-decl))
+                           (class-namespace (%resect:declaration-namespace record-decl))
+                           ;; Bug: wrong if the child is in a different namespace from the parent.
+                           ;; But it will probably still be unique, which is all we need.
+                           (child-mangled-name
+                             (rewrite-mangled-name (ensure-mangled method-decl) ctor-namespace ctor-name
+                                                   class-namespace class-name))
+                           (class-namespace (claw.spec:foreign-entity-namespace entity))
+                           (child-ctor (claw.spec::copy-foreign-method parent-ctor class-name class-namespace
+                                                                       child-ctor-id child-mangled-name entity)))
+                      (multiple-value-bind (method newp)
+                          (register-entity-instance child-ctor)
+                        (when newp
+                          (setf (gethash child-mangled-name *mangled-table*) method))))))))))))
     (resect:docollection (type-method (%resect:type-methods record-type))
       (let* ((method-prototype (%resect:type-method-prototype type-method))
              (method-decl (%resect:type-method-declaration type-method))
              (mangled-name (ensure-method-mangled-name type-method postfix))
              (pure-method-name (remove-template-argument-string
                                 (%resect:type-method-name type-method)))
+             (pure-record-name (remove-template-argument-string
+                                (foreign-entity-name entity)))
              (constructor-p (%resect:method-constructor-p method-decl))
              (result-type (ensure-const-type-if-needed
                            (%resect:function-proto-result-type method-prototype)
                            (parse-type-by-category
                             (%resect:function-proto-result-type method-prototype)))))
-        (unless (%resect:method-deleted-p method-decl)
+        (unless (or (%resect:method-deleted-p method-decl)
+                    ;; Having pulled down any inherited constructors above, we ignore those
+                    ;; on `record-type', as they are redundant.
+                    (and constructor-p (not (string= pure-method-name pure-record-name))))
           (multiple-value-bind (method newp)
               (register-entity 'foreign-method
                                :id (%resect:type-method-id type-method)
@@ -683,6 +735,7 @@
                                        ((starts-with-subseq "operator" pure-method-name)
                                         :operator)
                                        (t :regular))
+                               :constructor-kind (%resect:type-method-constructor-kind type-method)
                                :source (if (cffi:null-pointer-p method-decl)
                                            (%resect:type-method-source type-method)
                                          (%resect:declaration-source method-decl))
@@ -723,6 +776,35 @@
                                            (%resect:declaration-template-p method-decl)))
             (when newp
               (setf (gethash mangled-name *mangled-table*) method))))))))
+
+(defun rewrite-inherited-ctor-id (id from-class-name to-class-name)
+  ;; This will do the wrong thing if `from-class-name' occurs accidentally in `id',
+  ;; as is possible if it's a single letter, or if it's a substring of some containing
+  ;; namespace name.
+  ;; I don't know what this "c:" prefix is supposed to mean ... seems to always be there.
+  (concatenate 'string (subseq id 0 2)
+               (substitute-substring (subseq id 2) from-class-name to-class-name :count 2)))
+
+(defun rewrite-mangled-name (mangled-name from-namespace from-name to-namespace to-name)
+  (flet ((mangle (namespace name)
+           (format nil "~:{~D~A~}"
+                   (mapcar (lambda (nm) (list (length nm) nm))
+                           (append (ppcre:split "::" namespace) (list name))))))
+    (substitute-substring mangled-name (mangle from-namespace from-name)
+                          (mangle to-namespace to-name))))
+
+(defun substitute-substring (str old-substr new-substr &key count)
+  (let ((start-pos 0))
+    (loop
+      (let ((pos (search old-substr str :start2 start-pos)))
+        (when (null pos)
+          (return))
+        (let ((end (+ pos (length old-substr))))
+          (setq str (concatenate 'string (subseq str 0 pos) new-substr (subseq str end)))
+          (setq start-pos (+ pos (length new-substr))))
+        (when (and count (zerop (decf count)))
+          (return))))
+    str))
 
 
 (defun method-exists-p (decl)
