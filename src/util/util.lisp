@@ -40,7 +40,9 @@
 
            #:ignore-functions
 
-           #:format-claw-timestamp-text))
+           #:format-claw-timestamp-text
+
+           #:substitute-substring))
 (uiop:define-package :claw.util.infix
   (:use))
 (cl:in-package :claw.util)
@@ -781,3 +783,17 @@
         (%format-claw-timestamp-text stream)
         (with-output-to-string (stream)
           (%format-claw-timestamp-text stream)))))
+
+
+(defun substitute-substring (str old-substr new-substr &key count)
+  (let ((start-pos 0))
+    (loop
+      (let ((pos (search old-substr str :start2 start-pos)))
+        (when (null pos)
+          (return))
+        (let ((end (+ pos (length old-substr))))
+          (setq str (concatenate 'string (subseq str 0 pos) new-substr (subseq str end)))
+          (setq start-pos (+ pos (length new-substr))))
+        (when (and count (zerop (decf count)))
+          (return))))
+    str))
