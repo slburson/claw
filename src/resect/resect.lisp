@@ -126,13 +126,15 @@
                                            &key)
   (declare (ignore header-path includes frameworks language standard target intrinsics))
   (let ((n-decls 0))
+    ;; We now allow for the possibility that a hook action can add more hooks, so there
+    ;; can be multiple passes through the hook list.
     (loop while *post-parse-hooks*
       do
       (let ((hooks (reverse *post-parse-hooks*)))
         (setq *post-parse-hooks* nil)
         (loop for hook in hooks
           do (funcall hook)))
-      ;; Prevent bugs from causing infinite loops: if a pass adds no new declarations, exit.
+      ;; To guarantee termination, exit if a pass adds no declarations.
       (let ((new-n-decls (hash-table-count *declaration-table*)))
         (unless (> new-n-decls n-decls)
           (return))
@@ -684,19 +686,18 @@
               (let* ((parent-ctor-id (%resect:declaration-id method-decl))
                      (parent-ctor (find-entity parent-ctor-id)))
                 (if (null parent-ctor)
-                    ;; This is called out of *post-parse-hooks*, which may not be in the
-                    ;; correct order.  If not, we just postpone it again.
+                    ;; This function is called via *post-parse-hooks*, which may not be in the
+                    ;; same order as the source declarations.  If we haven't seen a parent
+                    ;; constructor declaration, we just try again in a later pass.
                     (progn
                       (on-post-parse
                         (parse-methods entity record-decl :postfix postfix :type record-type))
                       (return-from parse-methods))
                   (unless (member (claw.spec:foreign-method-constructor-kind parent-ctor)
                                   '(:copy :move))
-                    (let* ((child-ctor-id (rewrite-inherited-ctor-id parent-ctor-id ctor-name class-name))
-                           (ctor-namespace (%resect:declaration-namespace method-decl))
+                    (let* ((ctor-namespace (%resect:declaration-namespace method-decl))
                            (class-namespace (%resect:declaration-namespace record-decl))
-                           ;; Bug: wrong if the child is in a different namespace from the parent.
-                           ;; But it will probably still be unique, which is all we need.
+                           (child-ctor-id (rewrite-inherited-ctor-id parent-ctor-id class-namespace class-name))
                            (child-mangled-name
                              (rewrite-mangled-name (ensure-mangled method-decl) ctor-namespace ctor-name
                                                    class-namespace class-name))
@@ -721,7 +722,7 @@
                            (parse-type-by-category
                             (%resect:function-proto-result-type method-prototype)))))
         (unless (or (%resect:method-deleted-p method-decl)
-                    ;; Having pulled down any inherited constructors above, we ignore those
+                    ;; Having pulled down inherited constructors above, we ignore any
                     ;; on `record-type', as they are redundant.
                     (and constructor-p (not (string= pure-method-name pure-record-name))))
           (multiple-value-bind (method newp)
@@ -738,7 +739,7 @@
                                :constructor-kind (%resect:type-method-constructor-kind type-method)
                                :source (if (cffi:null-pointer-p method-decl)
                                            (%resect:type-method-source type-method)
-                                         (%resect:declaration-source method-decl))
+                                           (%resect:declaration-source method-decl))
                                :name (cond
                                        (constructor-p
                                         (string+ pure-method-name
@@ -754,14 +755,14 @@
                                :namespace (unless-empty
                                             (if (cffi:null-pointer-p method-decl)
                                                 (claw.spec:foreign-entity-namespace entity)
-                                              (%resect:declaration-namespace method-decl)))
+                                                (%resect:declaration-namespace method-decl)))
                                :mangled mangled-name
                                :location (if (cffi:null-pointer-p method-decl)
                                              (make-instance 'foreign-location
                                                             :path ""
                                                             :line 0
                                                             :column 0)
-                                           (make-declaration-location method-decl))
+                                             (make-declaration-location method-decl))
                                :result-type result-type
                                :parameters (parse-instantiated-method-parameters
                                              (%resect:function-proto-parameters method-prototype)
@@ -773,17 +774,14 @@
                                :ref-qualifier (%resect:method-ref-qualifier method-decl)
                                :template (if (cffi:null-pointer-p method-decl)
                                              nil
-                                           (%resect:declaration-template-p method-decl)))
+                                             (%resect:declaration-template-p method-decl)))
             (when newp
               (setf (gethash mangled-name *mangled-table*) method))))))))
 
-(defun rewrite-inherited-ctor-id (id from-class-name to-class-name)
-  ;; This will do the wrong thing if `from-class-name' occurs accidentally in `id',
-  ;; as is possible if it's a single letter, or if it's a substring of some containing
-  ;; namespace name.
-  ;; I don't know what this "c:" prefix is supposed to mean ... seems to always be there.
-  (concatenate 'string (subseq id 0 2)
-               (substitute-substring (subseq id 2) from-class-name to-class-name :count 2)))
+(defun rewrite-inherited-ctor-id (id to-namespace to-name)
+  ;; All we care about here is producing a unique ID; it doesn't need to be the same
+  ;; one libclang would have produced.
+  (format nil "~A@INH@~A@~A" id to-namespace to-name))
 
 (defun rewrite-mangled-name (mangled-name from-namespace from-name to-namespace to-name)
   (flet ((mangle (namespace name)
@@ -792,19 +790,6 @@
                            (append (ppcre:split "::" namespace) (list name))))))
     (substitute-substring mangled-name (mangle from-namespace from-name)
                           (mangle to-namespace to-name))))
-
-(defun substitute-substring (str old-substr new-substr &key count)
-  (let ((start-pos 0))
-    (loop
-      (let ((pos (search old-substr str :start2 start-pos)))
-        (when (null pos)
-          (return))
-        (let ((end (+ pos (length old-substr))))
-          (setq str (concatenate 'string (subseq str 0 pos) new-substr (subseq str end)))
-          (setq start-pos (+ pos (length new-substr))))
-        (when (and count (zerop (decf count)))
-          (return))))
-    str))
 
 
 (defun method-exists-p (decl)

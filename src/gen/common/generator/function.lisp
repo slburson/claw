@@ -1,5 +1,6 @@
 (cl:in-package :claw.generator.common)
 
+
 (defvar *adapt-mode* :c)
 
 (defgeneric adapt-type (entity)
