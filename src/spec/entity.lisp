@@ -80,7 +80,6 @@
            #:foreign-method-constructor-kind
            #:foreign-method-static-p
            #:foreign-method-const-p
-           #:foreign-method-deleted-p
            #:foreign-method-ref-qualifier
 
            #:foreign-variable
