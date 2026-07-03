@@ -43,7 +43,10 @@
   defines
   intrinsics
   system-include-type
-  system-includes)
+  system-includes
+  ;; The value supplied with `-fvisibility=' when the library was compiled.
+  visibility
+  diagnostics-level)
 
 
 (defun parse-parse-options (opts)
@@ -67,6 +70,8 @@
                          intrinsics
 			 (system-include-type '(:default))
                          system-includes
+			 visibility
+			 diagnostics-level
                        &allow-other-keys)
       (alist-plist opts)
     (unless (member (car system-include-type) '(:default :clang :gcc))
@@ -108,7 +113,9 @@
                               :enforce-sources enforce-sources
                               :enforce-definitions enforce-definitions
                               :ignore-sources ignore-sources
-                              :ignore-definitions ignore-definitions))))))
+                              :ignore-definitions ignore-definitions
+			      :visibility (car visibility)
+			      :diagnostics-level (car diagnostics-level)))))))
 
 
 (defstruct target-options
@@ -334,7 +341,11 @@
                           :intrinsics
                           (or
                            (%parse-opt 'intrinsics target-parse-opts)
-                           (%parse-opt 'intrinsics common-parse-opts))))))
+                           (%parse-opt 'intrinsics common-parse-opts))
+			  :visibility
+			  (%parse-opt 'visibility common-parse-opts)
+			  :diagnostics-level
+			  (%parse-opt 'diagnostics-level common-parse-opts)))))
 
 
 (defun make-bindings-table (name opts configuration)
@@ -362,7 +373,9 @@
                        :enforce-sources (parse-options-enforce-sources parse-opts)
                        :enforce-definitions (parse-options-enforce-definitions parse-opts)
                        :ignore-sources (parse-options-ignore-sources parse-opts)
-                       :ignore-definitions (parse-options-ignore-definitions parse-opts))
+                       :ignore-definitions (parse-options-ignore-definitions parse-opts)
+		       :visibility (parse-options-visibility parse-opts)
+		       :diagnostics-level (parse-options-diagnostics-level parse-opts))
         for selected-language = (or (parse-options-language parse-opts)
                                     (foreign-library-language library)
                                     :c)
@@ -549,14 +562,16 @@
                return (bindings-definition (gethash target bindings-table)))))
 
 
-(defun call-with-wrapper-opts (name wrapper-handler &key always-generate)
+(defun call-with-wrapper-opts (name wrapper-handler &key always-generate diagnostics-level)
   (let ((name (sanitize-wrapper-name name)))
     (destructuring-bind (opts . configuration)
         (if-let (wrapper-def (gethash name *wrapper-registry*))
           wrapper-def
           (error "Wrapper ~A not found" name))
       (let* ((*always-generate* always-generate)
-             (opts (eval-opts name opts))
+             (opts (if diagnostics-level `((:diagnostics-level ,diagnostics-level) . ,opts)
+		     opts))
+	     (opts (eval-opts name opts))
              (*path-mapper* (lambda (path)
                               (find-path path :system (wrapper-options-system opts)
                                               :path (wrapper-options-base-path opts))))
@@ -571,8 +586,9 @@
                            :always-generate ,always-generate))
 
 
-(defun generate-wrapper (name)
-  (call-with-wrapper-opts name #'persist-bindings-and-asd :always-generate t))
+(defun generate-wrapper (name &key diagnostics-level)
+  (call-with-wrapper-opts name #'persist-bindings-and-asd
+			  :always-generate t :diagnostics-level diagnostics-level))
 
 
 (defun load-wrapper (name)

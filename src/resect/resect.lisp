@@ -163,7 +163,9 @@
                                                             enforce-definitions
                                                             enforce-sources
                                                             ignore-definitions
-                                                            ignore-sources)
+                                                            ignore-sources
+                                                            visibility
+                                                            diagnostics-level)
   (declare (ignore parser))
   (with-temporary-directory (:pathname prepared-dir)
     (uiop:with-temporary-file (:pathname uber-path :type "h")
@@ -185,7 +187,9 @@
                                    :enforce-definitions enforce-definitions
                                    :enforce-sources enforce-sources
                                    :ignore-definitions ignore-definitions
-                                   :ignore-sources ignore-sources)
+                                   :ignore-sources ignore-sources
+                                   :visibility visibility
+                                   :diagnostics-level diagnostics-level)
         (let ((*declaration-table* (make-hash-table :test 'equal))
               (*instantiated-table* (make-hash-table :test 'equal))
               (*mangled-table* (make-hash-table :test 'equal))
@@ -206,7 +210,9 @@
                                             :enforce-definitions enforce-definitions
                                             :enforce-sources enforce-sources
                                             :ignore-definitions ignore-definitions
-                                            :ignore-sources ignore-sources))
+                                            :ignore-sources ignore-sources
+                                            :visibility visibility
+                                            :diagnostics-level diagnostics-level))
           (loop for constant in (prepare-macros-as-constants uber-path
                                                              includes
                                                              frameworks
