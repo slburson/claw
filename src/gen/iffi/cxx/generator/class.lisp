@@ -151,7 +151,10 @@
                                                      (register-adapted-function adapted-getter)))
                                      (field-name (c-name->lisp
                                                   (claw.spec:foreign-entity-name field) :field)))
-                                (export-symbol field-name)
+                                ;; Local mod: don't export field names.  (We probably won't use them
+                                ;; anyway, and they tend to collide with CL, FSet, etc., because they
+                                ;; don't have namespace prefixes.)
+                                ;; (export-symbol field-name)
                                 `(,field-name
                                   ,(entity->cffi-type (adapted-function-result-type adapted-getter))
                                   :setter ,setter-cname
