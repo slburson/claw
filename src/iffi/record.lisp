@@ -16,6 +16,8 @@
   ((name :initarg :name :reader name-of)
    (size-reporter :initarg :size-reporter :initform nil  :reader size-reporter-of)
    (alignment-reporter :initarg :alignment-reporter :initform nil :reader alignment-reporter-of)
+   (bit-size :initarg :bit-size :initform nil :reader record-bit-size)
+   (bit-alignment :initarg :bit-alignment :initform nil :reader record-bit-alignment)
    (constructor :initarg :constructor :initform nil :reader constructor-of)
    (destructor :initarg :destructor :initform nil :reader destructor-of)
    (field-map :initarg :field-map :initform (make-hash-table))))
@@ -27,6 +29,8 @@
           :size (size-reporter-of record)
           :alignment (alignment-reporter-of record)
           :constructor (constructor-of record)
+	  :bit-size (record-bit-size record)
+	  :bit-alignment (record-bit-alignment record)
           :destructor (destructor-of record)
           :fields (loop for field being the hash-value of field-map
                         collect (list :name (name-of field)
@@ -35,7 +39,7 @@
 
 
 (defun deserialize-intricate-record (record-data)
-  (destructuring-bind (&key name size alignment constructor destructor fields)
+  (destructuring-bind (&key name size alignment bit-size bit-alignment constructor destructor fields)
       record-data
     (let ((field-map (loop with map = (make-hash-table)
                            for field in fields
@@ -49,6 +53,8 @@
       (make-instance 'intricate-record :name name
                                        :size-reporter size
                                        :alignment-reporter alignment
+				       :bit-size bit-size
+				       :bit-alignment bit-alignment
                                        :constructor constructor
                                        :destructor destructor
                                        :field-map field-map))))
@@ -138,7 +144,8 @@
         (if (stringp (first fields))
             (values (first fields) (rest fields))
             (values nil fields))
-      (destructuring-bind (&key size-reporter alignment-reporter constructor destructor (inline t))
+      (destructuring-bind (&key size-reporter alignment-reporter bit-size bit-alignment
+			     constructor destructor (inline t))
           opts
         (let ((record (make-instance 'intricate-record
                                      :name name
@@ -150,6 +157,8 @@
                                      :alignment-reporter (when alignment-reporter
                                                            (format-symbol (symbol-package name)
                                                                           "~A$~A" 'iffi-alignof name))
+				     :bit-size bit-size
+				     :bit-alignment bit-alignment
                                      :field-map (make-field-map name fields))))
           `(progn
              (cffi:defctype ,name :void ,doc)

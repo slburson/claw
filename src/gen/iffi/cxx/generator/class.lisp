@@ -124,6 +124,8 @@
       (export-symbol name)
       `((,define (,name :size-reporter ,sizeof-cname
                         :alignment-reporter ,alignof-cname
+                        :bit-size ,(claw.spec:foreign-entity-bit-size entity)
+                        :bit-alignment ,(claw.spec:foreign-entity-bit-alignment entity)
                         ,@(when-let ((ctor (find-constructor id)))
                             `(:constructor ,(symbolicate-function-name ctor)))
                         ,@(when-let ((dtor (find-destructor id)))
