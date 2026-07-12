@@ -983,7 +983,8 @@
 
 
 (defmethod parse-declaration ((type (eql :function)) decl &key)
-  (unless (eq :static (%resect:function-storage-class decl))
+  (unless (or (eq :static (%resect:function-storage-class decl))
+              (%resect:function-deleted-p decl))
     (if (starts-with-subseq +instantiation-prefix+ (%resect:declaration-name decl))
         (on-post-parse
           (let ((template-mangled-name (subseq (%resect:declaration-name decl)
