@@ -714,7 +714,7 @@
       (format nil "~A~@[~A~]"
               (foreign-location-path location)
               (when print-line-and-column-p
-                (format nil ":~A:~A"
+                (format nil ":~D:~D"
                         (foreign-location-line location)
                         (foreign-location-column location))))
       "::"))
