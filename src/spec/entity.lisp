@@ -69,6 +69,7 @@
            #:foreign-function
            #:foreign-function-variadic-p
            #:foreign-function-inlined-p
+	   #:foreign-function-noexcept-p
            #:foreign-function-result-type
            #:foreign-function-storage-class
 
@@ -463,7 +464,10 @@
                   :reader foreign-function-storage-class)
    (inlined-p :initarg :inlined
               :initform nil
-              :reader foreign-function-inlined-p)))
+              :reader foreign-function-inlined-p)
+   (noexcept-p :initarg :noexcept
+	       :initform nil
+	       :reader foreign-function-noexcept-p)))
 
 
 (defclass foreign-method (foreign-function)
@@ -501,6 +505,7 @@
                  :variadic (foreign-function-variadic-p method)
                  :storage-class (foreign-function-storage-class method)
                  :inlined (foreign-function-inlined-p method)
+		 :noexcept (foreign-function-noexcept-p method)
                  :kind (foreign-method-kind method)
                  :constructor-kind (foreign-method-constructor-kind method)
                  :static (foreign-method-static-p method)
