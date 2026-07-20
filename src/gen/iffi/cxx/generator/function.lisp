@@ -86,7 +86,11 @@
                                                    (claw.spec:foreign-method-const-p entity))
                                           `(:non-mutating t))
                                       ,@(unless *inline-functions*
-                                          `(:inline nil)))
+                                          `(:inline nil))
+				      ,@(when (and claw.generator.common::*exception-handler*
+						   (not (claw.spec:foreign-function-noexcept-p entity)))
+					  `(:exception-handler ,(getf claw.generator.common::*exception-handler*
+								      :lisp))))
             ,result-type
           ,(format nil "~A;~&~A"
                    (claw.spec:foreign-entity-source entity)

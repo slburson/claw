@@ -787,6 +787,8 @@
                                :variadic (%resect:function-proto-variadic-p method-prototype)
                                :static (%resect:type-method-static-p type-method)
                                :const (%resect:type-method-const-p type-method)
+			       :inlined (%resect:method-inlined-p method-decl)
+			       :noexcept (%resect:method-noexcept-p method-decl)
                                :ref-qualifier (%resect:method-ref-qualifier method-decl)
                                :template (if (cffi:null-pointer-p method-decl)
                                              nil
@@ -989,6 +991,7 @@
                          :parameters params
                          :variadic (%resect:function-variadic-p decl)
                          :inlined (%resect:function-inlined-p decl)
+			 :noexcept (%resect:function-noexcept-p decl)
                          :template (%resect:declaration-template-p decl)
                          :entity-parameters (collect-entity-parameters decl)
                          :entity-arguments (collect-entity-arguments decl))
