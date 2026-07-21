@@ -170,9 +170,7 @@
                (append
                 (when const-p
                   '(:const))
-                ;; Hide the internal exception parameter when present.
-                (loop for param in (if exception-handler (cdr param-config)
-                                     param-config)
+                (loop for param in param-config
                       if (eq param '&rest)
                         collect ''&rest
                       else
@@ -193,7 +191,9 @@
            (cffi:defcfun (,mangled ,cfun-name ,@(nreverse cffi-opts)) ,return-type
              ,@(when doc
                  (list doc))
-             ,@param-config)
+             ,@(if exception-handler
+                   `((%%claw-excp-msg- (:pointer :string)) ,@param-config)
+                 param-config))
            (meta-eval
              (setf (intricate-function ',name ,@signed-param-types)
                    '(,cfun-name ,exception-handler)))
@@ -218,7 +218,6 @@
                `((meta-eval
                    (setf (intricate-documentation ',name ,@signed-param-types)
                          ,(format-defifun-documentation return-type
-                                                        (if exception-handler (cdr param-config)
-                                                          param-config)
+                                                        param-config
                                                         doc)))
                  (ensure-documentation ',name))))))))
