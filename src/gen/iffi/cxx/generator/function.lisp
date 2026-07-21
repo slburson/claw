@@ -74,7 +74,9 @@
 
          (adapted-cname (register-adapted-function adapted-function))
          (extractor-cname (when (function-pointer-extractor-required-p full-name)
-                            (register-adapted-function (adapt-pointer-extractor entity)))))
+                            (register-adapted-function (adapt-pointer-extractor entity))))
+	 (handling-exceptions-p (and claw.generator.common::*exception-handler*
+				     (not (claw.spec:foreign-function-noexcept-p entity)))))
     ;; We can get a null `name' in certain circumstances involving assignment operators
     ;; generated for unnamed structs.
     (when name
@@ -87,8 +89,7 @@
                                           `(:non-mutating t))
                                       ,@(unless *inline-functions*
                                           `(:inline nil))
-				      ,@(when (and claw.generator.common::*exception-handler*
-						   (not (claw.spec:foreign-function-noexcept-p entity)))
+				      ,@(when handling-exceptions-p
 					  `(:exception-handler ,(getf claw.generator.common::*exception-handler*
 								      :lisp))))
             ,result-type
@@ -98,7 +99,10 @@
                      (if (uiop:emptyp (claw.spec:foreign-location-path location))
                          "(No source location found)"
                          (claw.spec:format-foreign-location location))))
-          ,@params
+          ;; We suppress the exception parameter in the `defifun' form, because the client doesn't
+	  ;; pass it explicitly and doesn't need to know about it.  Of course, it's still visible
+	  ;; in the C++ shim.
+	  ,@(if handling-exceptions-p (cdr params) params)
           ,@(when (claw.spec:foreign-function-variadic-p entity)
               (list 'cl:&rest)))))))
 
