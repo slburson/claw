@@ -77,6 +77,12 @@
                             (register-adapted-function (adapt-pointer-extractor entity))))
 	 (handling-exceptions-p (and claw.generator.common::*exception-handler*
 				     (not (claw.spec:foreign-function-noexcept-p entity)))))
+    (when (and extractor-cname handling-exceptions-p)
+      ;; Calling through a C++ function pointer that then threw an exception would be a good way
+      ;; to ruin your day.  Just use a (Lisp) lambda expression that calls the target function;
+      ;; then exception handling can work.
+      (error "Unimplemented: function pointer extraction combined with exception handling;~@
+              for ~A" full-name))
     ;; We can get a null `name' in certain circumstances involving assignment operators
     ;; generated for unnamed structs.
     (when name
