@@ -144,8 +144,9 @@
              (*float-features-requested* nil)
 	     ;; The Lisp handler must be supplied as a string, since its package may not exist
 	     ;; yet at the time the `defwrapper' form is read.
-	     (*exception-handler* (list :c++ (getf exception-handler :c++)
-					:lisp (read-from-string (getf exception-handler :lisp))))
+	     (*exception-handler* (and exception-handler
+				       (list :c++ (getf exception-handler :c++)
+					     :lisp (read-from-string (getf exception-handler :lisp)))))
              (*always-generate-adapter* (or (claw.wrapper:wrapper-always-generate wrapper)
                                             (featurep :claw-regen-adapter)))
              (rename-symbols (eval (parse-renaming-pipeline symbolicate-names)))
