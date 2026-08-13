@@ -445,7 +445,8 @@
 				   :reader foreign-record-has-deleted-copy-constructor-p)))
 
 (defmethod foreign-type-assignable-p ((record foreign-record))
-  (and (not (foreign-record-has-deleted-assignment-p record))
+  (and (not (or (foreign-record-has-deleted-assignment-p record)
+		(foreign-type-known-non-copyable-p record)))
        (or (foreign-record-has-explicit-assignment-p record)
 	   (and (every (lambda (field)
 			 (let ((field-type (foreign-enveloped-entity field)))
@@ -462,13 +463,21 @@
 		(every #'foreign-type-assignable-p (foreign-record-parents record))))))
 
 (defmethod foreign-type-copy-constructible-p ((record foreign-record))
-  (and (not (foreign-record-has-deleted-copy-constructor-p record))
+  (and (not (or (foreign-record-has-deleted-copy-constructor-p record)
+		(foreign-type-known-non-copyable-p record)))
        (or (foreign-record-has-explicit-copy-constructor-p record)
 	   (and (every (compose #'foreign-type-copy-constructible-p
 				#'foreign-enveloped-entity)
 		       (foreign-record-fields record))
 		(every #'foreign-type-copy-constructible-p
 		       (foreign-record-parents record))))))
+
+(defun foreign-type-known-non-copyable-p (record)
+  ;; We don't want to force the user to include these in their wrapper, so we special-case them.
+  (and (string= (foreign-entity-namespace record) "std")
+       (let ((name (foreign-entity-name record)))
+	 (some (lambda (str) (string= name str :end1 (min (length str) (length name))))
+	       '("unique_ptr")))))
 
 
 (defmethod foreign-entity-forward-p (any)
