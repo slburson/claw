@@ -125,10 +125,10 @@
       doc
       (with-output-to-string (out)
         (let ((*print-case* :downcase)
-	      (rest-p nil))
-	  (when (eq (car (last param-config)) '&rest)
-	    (setq param-config (butlast param-config))
-	    (setq rest-p t))
+              (rest-p nil))
+          (when (eq (car (last param-config)) '&rest)
+            (setq param-config (butlast param-config))
+            (setq rest-p t))
           (format out "Adapted result: ")
           (prin1 return-type out)
           (format out "~&Adapted parameters:")
@@ -138,8 +138,8 @@
                    (format out " ")
                    (princ name out))
           (when rest-p
-	    (format out "~&..."))
-	  (format out "~&~%~A" doc)))))
+            (format out "~&..."))
+          (format out "~&~%~A" doc)))))
 
 
 (defmacro defifun (name-and-options return-type &body configuration)
