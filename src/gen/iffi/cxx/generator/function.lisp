@@ -75,8 +75,8 @@
          (adapted-cname (register-adapted-function adapted-function))
          (extractor-cname (when (function-pointer-extractor-required-p full-name)
                             (register-adapted-function (adapt-pointer-extractor entity))))
-	 (handling-exceptions-p (and claw.generator.common::*exception-handler*
-				     (not (claw.spec:foreign-function-noexcept-p entity)))))
+         (handling-exceptions-p (and claw.generator.common::*exception-handler*
+                                     (not (claw.spec:foreign-function-noexcept-p entity)))))
     (when (and extractor-cname handling-exceptions-p)
       ;; Calling through a C++ function pointer that then threw an exception would be a good way
       ;; to ruin your day.  Just use a (Lisp) lambda expression that calls the target function;
@@ -95,9 +95,9 @@
                                           `(:non-mutating t))
                                       ,@(unless *inline-functions*
                                           `(:inline nil))
-				      ,@(when handling-exceptions-p
-					  `(:exception-handler ,(getf claw.generator.common::*exception-handler*
-								      :lisp))))
+                                      ,@(when handling-exceptions-p
+                                          `(:exception-handler ,(getf claw.generator.common::*exception-handler*
+                                                                      :lisp))))
             ,result-type
           ,(format nil "~A;~&~A"
                    (claw.spec:foreign-entity-source entity)
@@ -106,9 +106,9 @@
                          "(No source location found)"
                          (claw.spec:format-foreign-location location))))
           ;; We suppress the exception parameter in the `defifun' form, because the client doesn't
-	  ;; pass it explicitly and doesn't need to know about it.  Of course, it's still visible
-	  ;; in the C++ shim.
-	  ,@(if handling-exceptions-p (cdr params) params)
+          ;; pass it explicitly and doesn't need to know about it.  Of course, it's still visible
+          ;; in the C++ shim.
+          ,@(if handling-exceptions-p (cdr params) params)
           ,@(when (claw.spec:foreign-function-variadic-p entity)
               (list 'cl:&rest)))))))
 

@@ -29,8 +29,8 @@
           :size (size-reporter-of record)
           :alignment (alignment-reporter-of record)
           :constructor (constructor-of record)
-	  :bit-size (record-bit-size record)
-	  :bit-alignment (record-bit-alignment record)
+          :bit-size (record-bit-size record)
+          :bit-alignment (record-bit-alignment record)
           :destructor (destructor-of record)
           :fields (loop for field being the hash-value of field-map
                         collect (list :name (name-of field)
@@ -53,8 +53,8 @@
       (make-instance 'intricate-record :name name
                                        :size-reporter size
                                        :alignment-reporter alignment
-				       :bit-size bit-size
-				       :bit-alignment bit-alignment
+                                       :bit-size bit-size
+                                       :bit-alignment bit-alignment
                                        :constructor constructor
                                        :destructor destructor
                                        :field-map field-map))))
@@ -145,7 +145,7 @@
             (values (first fields) (rest fields))
             (values nil fields))
       (destructuring-bind (&key size-reporter alignment-reporter bit-size bit-alignment
-			     constructor destructor (inline t))
+                             constructor destructor (inline t))
           opts
         (let ((record (make-instance 'intricate-record
                                      :name name
@@ -157,8 +157,8 @@
                                      :alignment-reporter (when alignment-reporter
                                                            (format-symbol (symbol-package name)
                                                                           "~A$~A" 'iffi-alignof name))
-				     :bit-size bit-size
-				     :bit-alignment bit-alignment
+                                     :bit-size bit-size
+                                     :bit-alignment bit-alignment
                                      :field-map (make-field-map name fields))))
           `(progn
              (cffi:defctype ,name :void ,doc)

@@ -110,7 +110,7 @@
                            (inline-functions t)
                            (ignore-entities (constantly nil))
                            use-float-features
-			   exception-handler)
+                           exception-handler)
         configuration
       (uiop:ensure-package in-package :use nil)
       (let* ((in-package (eval in-package))
@@ -142,11 +142,11 @@
              (*inline-functions* inline-functions)
              (*use-float-features* use-float-features)
              (*float-features-requested* nil)
-	     ;; The Lisp handler must be supplied as a string, since its package may not exist
-	     ;; yet at the time the `defwrapper' form is read.
-	     (*exception-handler* (and exception-handler
-				       (list :c++ (getf exception-handler :c++)
-					     :lisp (read-from-string (getf exception-handler :lisp)))))
+             ;; The Lisp handler must be supplied as a string, since its package may not exist
+             ;; yet at the time the `defwrapper' form is read.
+             (*exception-handler* (and exception-handler
+                                       (list :c++ (getf exception-handler :c++)
+                                             :lisp (read-from-string (getf exception-handler :lisp)))))
              (*always-generate-adapter* (or (claw.wrapper:wrapper-always-generate wrapper)
                                             (featurep :claw-regen-adapter)))
              (rename-symbols (eval (parse-renaming-pipeline symbolicate-names)))

@@ -14,7 +14,7 @@
                   *recognize-bitfields*
                   *recognize-arrays*
                   *use-float-features*
-		  *exception-handler*
+                  *exception-handler*
                   *float-features-requested*
                   *inline-functions*
                   *override-table*
@@ -113,8 +113,8 @@
                (claw.spec:foreign-enveloped-entity entity))
              (%enveloped-char-p ()
                ;; This used to call `claw.spec:unwrap-foreign-entity', but that caused `char**' to
-	       ;; translate to `:string'.  Now it's `(:pointer :string)'.
-	       (let ((unwrapped (%enveloped-entity)))
+               ;; translate to `:string'.  Now it's `(:pointer :string)'.
+               (let ((unwrapped (%enveloped-entity)))
                  (and (typep unwrapped 'claw.spec:foreign-primitive)
                       (string= "char" (claw.spec:foreign-entity-name unwrapped)))))
              (%lisp-name ()
