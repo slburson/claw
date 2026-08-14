@@ -26,8 +26,8 @@
            #:foreign-entity-bit-alignment
 
            #:foreign-plain-old-data-type-p
-	   #:foreign-type-assignable-p
-	   #:foreign-type-copy-constructible-p
+           #:foreign-type-assignable-p
+           #:foreign-type-copy-constructible-p
 
            #:foreign-entity-location
 
@@ -430,43 +430,43 @@
               :initform nil
               :reader foreign-entity-forward-p)
    (has-explicit-assignment-p :initarg :explicit-assignment
-			      :initform nil
-			      :reader foreign-record-has-explicit-assignment-p)
+                              :initform nil
+                              :reader foreign-record-has-explicit-assignment-p)
    (has-deleted-assignment-p :initarg :deleted-assignment
-			     :initform nil
-			     :reader foreign-record-has-deleted-assignment-p)
+                             :initform nil
+                             :reader foreign-record-has-deleted-assignment-p)
    (has-explicit-copy-constructor-p :initarg :explicit-copy-constructor
-				    :initform nil
-				    :reader foreign-record-has-explicit-copy-constructor-p)
+                                    :initform nil
+                                    :reader foreign-record-has-explicit-copy-constructor-p)
    (has-deleted-copy-constructor-p :initarg :deleted-copy-constructor
-				   :initform nil
-				   :reader foreign-record-has-deleted-copy-constructor-p)))
+                                   :initform nil
+                                   :reader foreign-record-has-deleted-copy-constructor-p)))
 
 (defmethod foreign-type-assignable-p ((record foreign-record))
   (and (not (foreign-record-has-deleted-assignment-p record))
        (or (foreign-record-has-explicit-assignment-p record)
-	   (and (every (lambda (field)
-			 (let ((field-type (foreign-enveloped-entity field)))
-			   ;; You can normally assign through a non-const reference, but
-			   ;; C++ won't generate an implicit assignment operator that
-			   ;; assigns to a reference field.
-			   (or (and (foreign-type-assignable-p field-type)
-				    (not (typep field-type 'foreign-reference)))
-			       ;; Top-level arrays are not assignable, but as fields of records
-			       ;; they become so, if their element type is.
-			       (and (typep field-type 'foreign-array)
-				    (foreign-type-assignable-p (foreign-enveloped-entity field-type))))))
-		       (foreign-record-fields record))
-		(every #'foreign-type-assignable-p (foreign-record-parents record))))))
+           (and (every (lambda (field)
+                         (let ((field-type (foreign-enveloped-entity field)))
+                           ;; You can normally assign through a non-const reference, but
+                           ;; C++ won't generate an implicit assignment operator that
+                           ;; assigns to a reference field.
+                           (or (and (foreign-type-assignable-p field-type)
+                                    (not (typep field-type 'foreign-reference)))
+                               ;; Top-level arrays are not assignable, but as fields of records
+                               ;; they become so, if their element type is.
+                               (and (typep field-type 'foreign-array)
+                                    (foreign-type-assignable-p (foreign-enveloped-entity field-type))))))
+                       (foreign-record-fields record))
+                (every #'foreign-type-assignable-p (foreign-record-parents record))))))
 
 (defmethod foreign-type-copy-constructible-p ((record foreign-record))
   (and (not (foreign-record-has-deleted-copy-constructor-p record))
        (or (foreign-record-has-explicit-copy-constructor-p record)
-	   (and (every (compose #'foreign-type-copy-constructible-p
-				#'foreign-enveloped-entity)
-		       (foreign-record-fields record))
-		(every #'foreign-type-copy-constructible-p
-		       (foreign-record-parents record))))))
+           (and (every (compose #'foreign-type-copy-constructible-p
+                                #'foreign-enveloped-entity)
+                       (foreign-record-fields record))
+                (every #'foreign-type-copy-constructible-p
+                       (foreign-record-parents record))))))
 
 
 (defmethod foreign-entity-forward-p (any)
