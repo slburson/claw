@@ -57,10 +57,10 @@
       (error "Record with name ~A not found" name))
     (let ((ptr (intricate-alloc name)))
       (if-let ((ctor (constructor-of record)))
-	(handler-case
+        (handler-case
             (apply (constructor-of record) `(:pointer ,name) ptr args)
           (serious-condition (condi) (intricate-free ptr) (error condi)))
-	(error "Constructor not found for record ~A" name))
+        (error "Constructor not found for record ~A" name))
       ptr)))
 
 
@@ -73,20 +73,20 @@
         ((not record) (warn "Record with name ~A not found" quoted-name))
         ((not ctor) (warn "Constructor not found for record ~A" quoted-name))))
     (if ctor
-	(with-gensyms (ptr)
-	  (let ((arg-bindings (mapcar (lambda (arg)
-					(if (and (consp arg) (not (eq (car arg) 'quote)))
-					    (list :bind (gensym "ARG-") arg)
-					  (list :nobind arg)))
-				      args)))
-	    ;; Evaluate the argument expressions first, to prevent a leak
-	    ;; if one takes a nonlocal exit.
-	    `(let (,@(mapcar #'cdr (remove-if-not (lambda (b) (eq (car b) :bind))
-						  arg-bindings))
-		   (,ptr (intricate-alloc ',quoted-name)))
-	       (,ctor '(:pointer ,quoted-name) ,ptr
-		      ,@(mapcar #'cadr arg-bindings))
-	       ,ptr)))
+        (with-gensyms (ptr)
+          (let ((arg-bindings (mapcar (lambda (arg)
+                                        (if (and (consp arg) (not (eq (car arg) 'quote)))
+                                            (list :bind (gensym "ARG-") arg)
+                                          (list :nobind arg)))
+                                      args)))
+            ;; Evaluate the argument expressions first, to prevent a leak
+            ;; if one takes a nonlocal exit.
+            `(let (,@(mapcar #'cdr (remove-if-not (lambda (b) (eq (car b) :bind))
+                                                  arg-bindings))
+                   (,ptr (intricate-alloc ',quoted-name)))
+               (,ctor '(:pointer ,quoted-name) ,ptr
+                      ,@(mapcar #'cadr arg-bindings))
+               ,ptr)))
         whole)))
 
 
@@ -151,5 +151,5 @@ an instance of type `name'."
         ((not record) (warn "Record with name ~A not found" quoted-name))
         ((not ctor) (warn "Constructor not found for record ~A" quoted-name))))
     (if ctor
-	`(,ctor '(:pointer ,quoted-name) ,ptr ,@args)
+        `(,ctor '(:pointer ,quoted-name) ,ptr ,@args)
         whole)))
