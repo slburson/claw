@@ -68,15 +68,15 @@
                          framework-includes
                          defines
                          intrinsics
-			 (system-include-type '(:default))
+                         (system-include-type '(:default))
                          system-includes
-			 visibility
-			 diagnostics-level
+                         visibility
+                         diagnostics-level
                        &allow-other-keys)
       (alist-plist opts)
     (unless (member (car system-include-type) '(:default :clang :gcc))
       (error ":system-include-type must be one of (:default :clang :gcc), not ~S"
-	     (car system-include-type)))
+             (car system-include-type)))
     (with-evaluated-variables (language
                                standard)
       (with-evaluated-lists (headers
@@ -102,7 +102,7 @@
                               :headers headers
                               :includes includes
                               :framework-includes framework-includes
-			      :system-include-type (car system-include-type)
+                              :system-include-type (car system-include-type)
                               :system-includes system-includes
                               :defines defines
                               :intrinsics intrinsics
@@ -114,8 +114,8 @@
                               :enforce-definitions enforce-definitions
                               :ignore-sources ignore-sources
                               :ignore-definitions ignore-definitions
-			      :visibility (car visibility)
-			      :diagnostics-level (car diagnostics-level)))))))
+                              :visibility (car visibility)
+                              :diagnostics-level (car diagnostics-level)))))))
 
 
 (defstruct target-options
@@ -277,7 +277,7 @@
                       (%parse-opt 'standard common-parse-opts)))
            (features (target-options-features target-opts))
            (triple (target-options-triple target-opts))
-	   (system-include-type (%parse-opt 'system-include-type common-parse-opts)))
+           (system-include-type (%parse-opt 'system-include-type common-parse-opts)))
       (make-parse-options :include-sources
                           (append
                            (%parse-opt 'include-sources common-parse-opts)
@@ -327,13 +327,13 @@
                                (%parse-opt 'system-includes target-parse-opts)
                                (%parse-opt 'system-includes common-parse-opts))
                               (list-system-include-paths language triple features
-							 system-include-type))
+                                                         system-include-type))
                           :framework-includes
                           (or (append
                                (%parse-opt 'framework-includes target-parse-opts)
                                (%parse-opt 'framework-includes common-parse-opts))
                               (list-framework-paths language triple features
-						    system-include-type))
+                                                    system-include-type))
                           :defines
                           (append
                            (%parse-opt 'defines common-parse-opts)
@@ -342,10 +342,10 @@
                           (or
                            (%parse-opt 'intrinsics target-parse-opts)
                            (%parse-opt 'intrinsics common-parse-opts))
-			  :visibility
-			  (%parse-opt 'visibility common-parse-opts)
-			  :diagnostics-level
-			  (%parse-opt 'diagnostics-level common-parse-opts)))))
+                          :visibility
+                          (%parse-opt 'visibility common-parse-opts)
+                          :diagnostics-level
+                          (%parse-opt 'diagnostics-level common-parse-opts)))))
 
 
 (defun make-bindings-table (name opts configuration)
@@ -374,8 +374,8 @@
                        :enforce-definitions (parse-options-enforce-definitions parse-opts)
                        :ignore-sources (parse-options-ignore-sources parse-opts)
                        :ignore-definitions (parse-options-ignore-definitions parse-opts)
-		       :visibility (parse-options-visibility parse-opts)
-		       :diagnostics-level (parse-options-diagnostics-level parse-opts))
+                       :visibility (parse-options-visibility parse-opts)
+                       :diagnostics-level (parse-options-diagnostics-level parse-opts))
         for selected-language = (or (parse-options-language parse-opts)
                                     (foreign-library-language library)
                                     :c)
@@ -570,8 +570,8 @@
           (error "Wrapper ~A not found" name))
       (let* ((*always-generate* always-generate)
              (opts (if diagnostics-level `((:diagnostics-level ,diagnostics-level) . ,opts)
-		     opts))
-	     (opts (eval-opts name opts))
+                     opts))
+             (opts (eval-opts name opts))
              (*path-mapper* (lambda (path)
                               (find-path path :system (wrapper-options-system opts)
                                               :path (wrapper-options-base-path opts))))
@@ -588,7 +588,7 @@
 
 (defun generate-wrapper (name &key diagnostics-level)
   (call-with-wrapper-opts name #'persist-bindings-and-asd
-			  :always-generate t :diagnostics-level diagnostics-level))
+                          :always-generate t :diagnostics-level diagnostics-level))
 
 
 (defun load-wrapper (name)

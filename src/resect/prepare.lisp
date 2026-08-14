@@ -115,8 +115,8 @@
                                   enforce-sources
                                   ignore-definitions
                                   ignore-sources
-				  visibility
-				  diagnostics-level)
+                                  visibility
+                                  diagnostics-level)
   (let ((prepared-path (merge-pathnames "prepared_implicit.h" prepared-dir))
         (implicit (make-instance 'implicit-preparing-inspector
                                  :instantiation-filter instantiation-filter)))
@@ -136,8 +136,8 @@
                              :enforce-sources enforce-sources
                              :ignore-definitions ignore-definitions
                              :ignore-sources ignore-sources
-			     :visibility visibility
-			     :diagnostics-level diagnostics-level)
+                             :visibility visibility
+                             :diagnostics-level diagnostics-level)
     (prepare-header implicit uber-path prepared-path)
     (values (list prepared-path)
             (loop for macro being the hash-value of (macros-of implicit)
