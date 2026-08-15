@@ -176,14 +176,14 @@
 
 
 (defun predefined-targets (&key (linux "gnu") (windows "msvc") (darwin "gnu"))
-  `(((:and :x86-64 :linux) . ,(string+ "x86_64-pc-linux-" linux))
-    ((:and :x86 :linux) . ,(string+ "i686-pc-linux-" linux))
-    ((:and :ppc64 :linux :big-endian) . ,(string+ "powerpc64-pc-linux-" linux))
-    ((:and :ppc64 :linux :little-endian) . ,(string+ "powerpc64le-pc-linux-" linux))
-    ((:and :x86-64 :windows) . ,(string+ "x86_64-pc-windows-" windows))
-    ((:and :x86-64 :windows) . ,(string+ "i686-pc-windows-" windows))
-    ((:and :x86-64 :darwin) . ,(string+ "x86_64-apple-darwin-" darwin))
-    ((:and :x86-64 :darwin) . ,(string+ "i686-apple-darwin-" darwin))))
+  `(((:and :x86-64 :linux) ,(string+ "x86_64-pc-linux-" linux))
+    ((:and :x86 :linux) ,(string+ "i686-pc-linux-" linux))
+    ((:and :ppc64 :linux :big-endian) ,(string+ "powerpc64-pc-linux-" linux))
+    ((:and :ppc64 :linux :little-endian) ,(string+ "powerpc64le-pc-linux-" linux))
+    ((:and :x86-64 :windows) ,(string+ "x86_64-pc-windows-" windows))
+    ((:and :x86-64 :windows) ,(string+ "i686-pc-windows-" windows))
+    ((:and :x86-64 :darwin) ,(string+ "x86_64-apple-darwin-" darwin))
+    ((:and :x86-64 :darwin) ,(string+ "i686-apple-darwin-" darwin))))
 
 
 (defun eval-targets (targets)
@@ -233,18 +233,18 @@
                               (find-path path :system system :path base-path)))
              (parser (or parser :claw/resect))
              (targets (case (first targets)
-                        (:local `((t . ,(local-platform))))
+                        (:local `((t ,(local-platform))))
                         (:gnu (predefined-targets :linux "gnu"
                                                   :windows "gnu"
                                                   :darwin "gnu"))
                         (:native (predefined-targets))
-                        (t (eval-targets targets)))))
+                        (t targets))))
         (make-wrapper-options :system system
                               :base-path base-path
                               :persistent (parse-persistent-options name persistent)
                               :parser parser
                               :generator generator
-                              :targets targets
+                              :targets (eval-targets targets)
                               :parse (parse-parse-options opts)
                               :instantiation-filter instantiate)))))
 
