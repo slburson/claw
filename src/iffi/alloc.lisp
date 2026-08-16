@@ -1,19 +1,28 @@
 (cl:in-package :iffi)
 
 
+;;; Darwin's `aligned_alloc' requires the alignment to be at least one word.
+(defconstant minimum-allocation
+  #+Darwin (ceiling (integer-length most-positive-fixnum) 8)
+  #-Darwin 1)
+
 (defun intricate-alloc (name &optional (count 1))
   (if-let ((intricate (find-intricate-record name)))
-    (aligned-alloc (intricate-alignment name) (* (intricate-size name) count))
-    (aligned-alloc (cffi:foreign-type-size name) (* (cffi:foreign-type-alignment name) count))))
+    (aligned-alloc (max (intricate-alignment name) minimum-allocation)
+		   (max (* (intricate-size name) count) minimum-allocation))
+    (aligned-alloc (max (cffi:foreign-type-size name) minimum-allocation)
+		   (max (* (cffi:foreign-type-alignment name) count) minimum-allocation))))
 
 
 (define-compiler-macro intricate-alloc (&whole whole name &optional (count 1))
   (if-let ((quoted (find-quoted name)))
     (if-let ((intricate (find-intricate-record quoted)))
-      `(aligned-alloc (intricate-alignment ,name) (* (intricate-size ,name) ,count))
+      `(aligned-alloc (max (intricate-alignment ,name) minimum-allocation)
+		      (max (* (intricate-size ,name) ,count) minimum-allocation))
       (if-let ((type-alignment (ignore-errors (cffi:foreign-type-alignment quoted)))
                (type-size (ignore-errors (cffi:foreign-type-size quoted))))
-        `(aligned-alloc ,type-alignment (* ,type-size ,count))
+        `(aligned-alloc (max ,type-alignment minimum-allocation)
+			(max (* ,type-size ,count) minimum-allocation))
         whole))
     whole))
 

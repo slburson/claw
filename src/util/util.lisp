@@ -264,6 +264,14 @@
    (uiop:run-program (format nil "cygpath -m '~A'" (namestring path))
                      :output :string :error-output :string)))
 
+(defun trim-macos-framework-suffix (path)
+  (let* ((suffix " (framework directory)")
+	 (suffix-start (- (length path) (length suffix))))
+    (when (and (plusp suffix-start)
+	       (string= path suffix :start1 suffix-start))
+      (setq path (subseq path 0 suffix-start)))
+    path))
+
 
 (defun mingwp ()
   (and (featurep :windows)
@@ -289,7 +297,7 @@
           (let ((paths (ppcre:split "(\\r|\\n)+\\s*" (subseq paths (aref bounds 0) (aref bounds 1)))))
             (if (mingwp)
                 (mapcar #'convert-msys-path paths)
-                paths))))
+                (mapcar #'trim-macos-framework-suffix paths)))))
     (t (c)
       (warn "Failed to obtain `~A` search paths for language ~A: ~A" executable lang c)
       nil)))
@@ -332,7 +340,8 @@
 (defun list-system-paths (language triple features system-include-type)
   (flet ((%process-paths (paths)
            (mapcar (lambda (path)
-                     (uiop:native-namestring (uiop:truename* path)))
+                     (or (uiop:native-namestring (uiop:truename* path))
+			 (error "Failed to get truename for path: ~S" path)))
                    paths))
          (windows-target-p ()
            (uiop:featurep features
@@ -344,7 +353,7 @@
     (let ((lc-all (uiop:getenv "LC_ALL")))
       (setf (uiop:getenv "LC_ALL") "C")
       (multiple-value-bind (lang clang-name gcc-name)
-          (case language
+          (ecase language
             (:c++ (values "c++" "clang++" "g++"))
             (:c (values "c" "clang" "gcc")))
         (unwind-protect
@@ -451,6 +460,7 @@
       #+(and (not x86-64) x86 freebsd) "i386"
       #+(and ppc64 big-endian) "powerpc64"
       #+(and ppc64 little-endian) "powerpc64le"
+      #+arm64 "arm64"
       #+arm "arm"))
 
 

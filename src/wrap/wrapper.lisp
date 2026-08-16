@@ -183,7 +183,8 @@
     ((:and :x86-64 :windows) ,(string+ "x86_64-pc-windows-" windows))
     ((:and :x86-64 :windows) ,(string+ "i686-pc-windows-" windows))
     ((:and :x86-64 :darwin) ,(string+ "x86_64-apple-darwin-" darwin))
-    ((:and :x86-64 :darwin) ,(string+ "i686-apple-darwin-" darwin))))
+    ((:and :x86-64 :darwin) ,(string+ "i686-apple-darwin-" darwin))
+    ((:and :arm64 :darwin) ,(string+ "arm64-apple-darwin-" darwin))))
 
 
 (defun eval-targets (targets)
@@ -233,7 +234,7 @@
                               (find-path path :system system :path base-path)))
              (parser (or parser :claw/resect))
              (targets (case (first targets)
-                        (:local `((t ,(local-platform))))
+                        (:local `(((:and) ,(local-platform))))
                         (:gnu (predefined-targets :linux "gnu"
                                                   :windows "gnu"
                                                   :darwin "gnu"))
@@ -532,8 +533,8 @@
                   do (prin1 features out))
             (format out ")")
             (format out "~%")
-            (prin1 `(warn ,(format nil "Current platform unrecognized or unsupported by ~A system"
-                                   bindings-system))
+            (prin1 `(error ,(format nil "Current platform unrecognized or unsupported by ~A system"
+                                    bindings-system))
                    out)))))))
 
 
