@@ -77,7 +77,8 @@
 
 
 (defun intricate-funcall (name &rest args)
-  (let* ((const-p (eq (first args) :const))
+  (let* ((const-p (or (eq (first args) :const)
+		      (equal (first args) '':const)))
          (args (if const-p (rest args) args)))
     (loop for (type . rest) on args by #'cddr
           unless rest
@@ -97,7 +98,8 @@
 
 
 (define-compiler-macro intricate-funcall (&whole whole name &rest args)
-  (let* ((const-p (eq (first args) :const))
+  (let* ((const-p (or (eq (first args) :const)
+		      (equal (first args) '':const)))
          (args (if const-p (rest args) args)))
     (loop for (type . rest) on args by #'cddr
           unless rest
